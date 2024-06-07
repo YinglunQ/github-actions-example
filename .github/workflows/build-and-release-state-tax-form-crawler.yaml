@@ -92,24 +92,13 @@ jobs:
           python-version: '3.12'
       - name: Install dependencies
         working-directory: ${{ env.WORKING_DIR }}
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          mkdir -p ../package
-          cp -r venv/lib/python*/site-packages/* ../package/
-          cp -r venv/lib64/python*/site-packages/* ../package/ 2>/dev/null || true
-          deactivate
+        run: pip install -r requirements.txt -t ../lib --upgrade
+
       - name: Package lambda function
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          mkdir -p ../package/src
-          cp -r . ../package/src/
-          cd ../package
-          zip -r ../function.zip .
-          cd ..
-          ls -al ../function.zip
-          rm -rf package
+          zip -r function.zip . ../lib
+          ls -al function.zip  # Verify the zip file creation
       - name: Check AWS identity
         run: |
           aws sts get-caller-identity
@@ -118,5 +107,4 @@ jobs:
         env:
           FUNCTION_NAME: arn:aws:lambda:us-west-2:${{ needs.set-deploy-env.outputs.account }}:function:${{ env.LAMBDA_NAME }}
         run: |
-          pwd && ls -al function.zip
           aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://function.zip
