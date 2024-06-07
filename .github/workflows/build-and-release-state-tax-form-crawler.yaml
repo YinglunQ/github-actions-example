@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - "master"
+      - "staging"
+      - "development"
     paths:
       - "state-tax/state-tax-form-crawler/src/**"
   workflow_dispatch:
