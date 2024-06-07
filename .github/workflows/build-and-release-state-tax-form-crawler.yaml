@@ -16,11 +16,6 @@ on:
           - dev
           - staging
           - prod
-      chosen_branch:
-        type: string
-        description: "Which branch to commit changes"
-        required: false
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -31,55 +26,54 @@ env:
   WORKING_DIR: state-tax/state-tax-form-crawler/src
   ROLE_ARN: arn:aws:iam::654654273398:role/GithubAction
   AWS_REGION: us-west-2
+  DEV_ACCOUNT: 654654273398
+  STAGING_ACCOUNT: 654654273398
+  PROD_ACCOUNT: 654654273398
 
 jobs:
   set-deploy-env:
     runs-on: ubuntu-latest
     outputs:
-      branch: ${{ steps.set-branch.outputs.branch }}
       account: ${{ steps.set-account.outputs.account }}
     steps:
-      - name: Set AWS account id by env
+      - name: Set AWS account id
         id: set-account
         run: |
           if ${{ github.event_name  == 'workflow_dispatch' }}; then
             if ${{ inputs.chosen_env  == 'dev' }}; then
-              echo "account=654654273398" >> $GITHUB_OUTPUT
+              echo "account=${{ env.DEV_ACCOUNT }}" >> $GITHUB_OUTPUT
             elif ${{ inputs.chosen_env == 'staging' }}; then
-              echo "account=654654273398" >> $GITHUB_OUTPUT
+              echo "account=${{ env.STAGING_ACCOUNT }}" >> $GITHUB_OUTPUT
             elif ${{ inputs.chosen_env == 'prod' }}; then
-              echo "account=654654273398" >> $GITHUB_OUTPUT
+              echo "account=${{ env.PROD_ACCOUNT }}" >> $GITHUB_OUTPUT
             else
               echo "stop_workflow=true" >> $GITHUB_OUTPUT
             fi
-          elif ${{ github.event_name == 'push' }}  && ${{ github.ref == 'refs/heads/master' }} ; then
-            echo "Changing aws credential to env prod"
-            echo "account=654654273398" >> $GITHUB_OUTPUT
+          elif ${{ github.event_name == 'push' }}; then
+            if ${{ github.ref_name == 'development' }}; then
+              echo "account=${{ env.DEV_ACCOUNT }}" >> $GITHUB_OUTPUT
+            elif ${{ github.ref_name == 'staging' }}; then
+              echo "account=${{ env.STAGING_ACCOUNT }}" >> $GITHUB_OUTPUT
+            elif ${{ github.ref_name == 'master' }}; then
+              echo "account=${{ env.PROD_ACCOUNT }}" >> $GITHUB_OUTPUT
+            else
+              echo "stop_workflow=true" >> $GITHUB_OUTPUT
+            fi
           else
             echo "stop_workflow=true" >> $GITHUB_OUTPUT
           fi
-      - name: Set branch to checkout
-        id: set-branch
-        run: |
-          echo "deployment_branch=${{ inputs.chosen_branch }}" >> $GITHUB_OUTPUT
-          if ${{ inputs.chosen_env != 'dev' }}; then
-            echo "branch=${{ inputs.chosen_branch }}" >> $GITHUB_OUTPUT
-          else
-            echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          fi
       - name: Display output variables
         run: |
-          echo "Chosen environment: ${{ inputs.chosen_env }}"
-          echo "Chosen branch: ${{ inputs.chosen_branch }}"
+          echo "chosen env: ${{ inputs.chosen_env }}"
           echo "github.ref: ${{ github.ref }}"
+          echo "github.ref_name: ${{ github.ref_name }}"
           echo "github.event_name: ${{ github.event_name }}"
       - name: check stop_workflow
         run: |
           if ${{ steps.set-account.outputs.stop_workflow == 'true'}}; then
-            echo "Stopping workflow since stop_workflow == 'true'"
+            echo "Stopping workflow"
             exit 1
           fi
-
   build-and-upload:
     needs: set-deploy-env
     runs-on: ubuntu-latest
@@ -91,7 +85,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.set-deploy-env.outputs.branch }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -106,7 +100,6 @@ jobs:
       - name: Install dependencies
         working-directory: ${{ env.WORKING_DIR }}
         run: pip install -r requirements.txt -t ../lib --upgrade
-
       - name: Package lambda function
         working-directory: ${{ env.WORKING_DIR }}
         run: |
