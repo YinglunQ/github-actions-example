@@ -118,5 +118,6 @@ jobs:
         env:
           FUNCTION_NAME: arn:aws:lambda:us-west-2:${{ needs.set-deploy-env.outputs.account }}:function:${{ env.LAMBDA_NAME }}
         run: |
-          pwd && ls -al function.zip
+          pwd && ls -al
+          # pwd && ls -al function.zip
           aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://function.zip
