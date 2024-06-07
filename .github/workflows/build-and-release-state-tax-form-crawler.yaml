@@ -93,36 +93,22 @@ jobs:
       - name: Install dependencies
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          # Create a virtual environment
           python -m venv venv
-
-          # Activate the virtual environment
           source venv/bin/activate
-
-          # Install dependencies
           pip install -r requirements.txt
-
-          # Deactivate the virtual environment
+          mkdir -p ../package
+          cp -r venv/lib/python*/site-packages/* ../package/
+          cp -r venv/lib64/python*/site-packages/* ../package/ 2>/dev/null || true
           deactivate
       - name: Package lambda function
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          # Create a directory for the deployment package
-          mkdir -p package
-
-          # Copy the installed packages to the package directory
-          cp -r venv/lib/python*/site-packages/* package/
-          cp -r venv/lib64/python*/site-packages/* package/ 2>/dev/null || true
-
-          # Copy the Lambda function code to the package directory
-          cp -r . package/
-
-          # Change to the package directory and create a ZIP file
-          cd package
+          mkdir -p ../package/src
+          cp -r . ../package/src/
+          cd ../package
           zip -r ../function.zip .
-
-          # Change back to the working directory and clean up
           cd ..
+          rm -rf ../package
           rm -rf package
       # - name: Build ${{ env.LAMBDA_NAME }} lambda
       #   working-directory: ${{ env.WORKING_DIR }}
