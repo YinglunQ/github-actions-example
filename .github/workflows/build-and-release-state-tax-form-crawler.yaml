@@ -44,12 +44,22 @@ jobs:
             if ${{ inputs.chosen_env == 'dev' }}; then
               echo "account=654654273398" >> $GITHUB_OUTPUT
             else
-              echo "stopping workflow since chosen env not implemented" >> $GITHUB_OUTPUT
+              echo "stop_workflow=true" >> $GITHUB_OUTPUT
               exit 1
             fi
       - id: set-branch
         name: Set AWS Account by ENV
         run: echo "deployment_branch=${{ inputs.chosen_branch }}" >> $GITHUB_OUTPUT
+      - name: Display environment variables
+        run: |
+          echo "Chosen environment: ${{ inputs.chosen_env }}"
+          echo "Chosen branch: ${{ inputs.chosen_branch }}"
+      - name: check stop_workflow
+        run: |
+          if ${{ steps.set-account.outputs.stop_workflow == 'true'}}; then
+            echo "Stop workflow"
+            exit 1
+          fi
 
   build-and-upload:
     needs: set-deploy-env
