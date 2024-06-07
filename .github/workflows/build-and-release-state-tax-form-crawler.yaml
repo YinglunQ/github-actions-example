@@ -104,6 +104,7 @@ jobs:
       - name: Package lambda function
         working-directory: ${{ env.WORKING_DIR }}
         run: |
+          cp -r . ../lib
           zip -r function.zip . ../lib
           ls -al function.zip  # Verify the zip file creation
           rm -rf ../lib
