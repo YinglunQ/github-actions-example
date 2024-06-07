@@ -106,6 +106,7 @@ jobs:
         run: |
           zip -r function.zip . ../lib
           ls -al function.zip  # Verify the zip file creation
+          rm -rf ../lib
       - name: Check AWS identity
         run: |
           aws sts get-caller-identity
