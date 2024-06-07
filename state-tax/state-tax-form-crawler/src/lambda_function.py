@@ -1,4 +1,9 @@
+import sys
+import os
 import json
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../lib'))
+
 import requests
 
 
