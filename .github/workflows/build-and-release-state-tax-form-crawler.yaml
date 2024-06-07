@@ -104,7 +104,7 @@ jobs:
       - name: Upload lambda to AWS (DEV)
         working-directory: ${{ env.WORKING_DIR }}
         env:
-          FUNCTION_NAME: arn:aws:lambda:us-west-2:${{ steps.set-account.outputs.account_id }}:function:${{ env.LAMBDA_NAME }}
+          FUNCTION_NAME: arn:aws:lambda:us-west-2:${{ needs.set-deploy-env.outputs.account }}:function:${{ env.LAMBDA_NAME }}
         run: |
           pwd && ls -al dev/function.zip
           aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://dev/function.zip
