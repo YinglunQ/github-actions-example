@@ -8,6 +8,16 @@ on:
     paths:
       - "state-tax/state-tax-form-crawler/src/**"
   workflow_dispatch:
+    inputs:
+      chosen_env:
+        type: choice
+        description: Which environment to deploy?
+        required: true
+        default: 'dev'
+        options:
+          - dev
+          - staging
+          - prod
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -28,14 +38,14 @@ jobs:
     outputs:
       account: ${{ steps.set-account.outputs.account }}
     steps:
-      - name: Set AWS account id by branch (ref_name)
+      - name: Set AWS account id
         id: set-account
         run: |
-          if ${{ github.ref_name == 'development' }}; then
+          if ${{ inputs.chosen_env == 'dev' || github.ref_name == 'development' }}; then
             echo "account=${{ env.DEV_ACCOUNT }}" >> $GITHUB_OUTPUT
-          elif ${{ github.ref_name == 'staging' }}; then
+          elif ${{ inputs.chosen_env == 'staging' || github.ref_name == 'staging' }}; then
             echo "account=${{ env.STAGING_ACCOUNT }}" >> $GITHUB_OUTPUT
-          elif ${{ github.ref_name == 'master' }}; then
+          elif ${{ inputs.chosen_env == 'prod' || github.ref_name == 'master' }}; then
             echo "account=${{ env.PROD_ACCOUNT }}" >> $GITHUB_OUTPUT
           else
             echo "stop_workflow=true" >> $GITHUB_OUTPUT
