@@ -93,13 +93,23 @@ jobs:
       - name: Install dependencies
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          pip install -r requirements.txt -t ../lib
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          mkdir -p ../package
+          cp -r venv/lib/python*/site-packages/* ../package/
+          cp -r venv/lib64/python*/site-packages/* ../package/ 2>/dev/null || true
+          deactivate
       - name: Package lambda function
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          cd .. && ls -al
-          zip -r function.zip .
-          rm -rf lib
+          mkdir -p ../package/src
+          cp -r . ../package/src/
+          cd ../package
+          zip -r ../function.zip .
+          cd ..
+          ls -al ../function.zip
+          rm -rf package
       - name: Check AWS identity
         run: |
           aws sts get-caller-identity
