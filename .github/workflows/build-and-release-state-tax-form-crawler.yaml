@@ -1,6 +1,6 @@
 name: Build and Release State Tax Form Crawler
 on:
-  pull_request:
+  push:
     branches:
       - "master"
     paths:
@@ -76,7 +76,7 @@ jobs:
       - name: check stop_workflow
         run: |
           if ${{ steps.set-account.outputs.stop_workflow == 'true'}}; then
-            echo "Stop workflow"
+            echo "Stopping workflow since stop_workflow == 'true'"
             exit 1
           fi
 
