@@ -45,7 +45,6 @@ jobs:
               echo "account=654654273398" >> $GITHUB_OUTPUT
             else
               echo "stop_workflow=true" >> $GITHUB_OUTPUT
-              exit 1
             fi
       - id: set-branch
         name: Set AWS Account by ENV
