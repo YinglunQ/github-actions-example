@@ -48,7 +48,7 @@ jobs:
       - name: Check stop_workflow
         run: |
           if ${{ steps.set-account.outputs.stop_workflow == 'true'}}; then
-            echo "Stopping workflow because branch '${{ github.ref_name }}'' is not supported to be deployed."
+            echo "Stopping workflow because branch '${{ github.ref_name }}' is not supported to be deployed."
             exit 1
           fi
   build-and-upload:
