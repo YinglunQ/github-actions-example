@@ -90,14 +90,48 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Build ${{ env.LAMBDA_NAME }} lambda
+      - name: Install dependencies
         working-directory: ${{ env.WORKING_DIR }}
         run: |
+          # Create a virtual environment
+          python -m venv venv
+
+          # Activate the virtual environment
+          source venv/bin/activate
+
+          # Install dependencies
           pip install -r requirements.txt
-          echo " ============ Zips the lambda function.zip ============ "
-          mkdir -p dev
-          zip -q -r "dev/function.zip" .
-          find . -type d -name "__pycache__" -exec rm -rf {} +
+
+          # Deactivate the virtual environment
+          deactivate
+      - name: Package lambda function
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          # Create a directory for the deployment package
+          mkdir -p package
+
+          # Copy the installed packages to the package directory
+          cp -r venv/lib/python*/site-packages/* package/
+          cp -r venv/lib64/python*/site-packages/* package/ 2>/dev/null || true
+
+          # Copy the Lambda function code to the package directory
+          cp -r . package/
+
+          # Change to the package directory and create a ZIP file
+          cd package
+          zip -r ../function.zip .
+
+          # Change back to the working directory and clean up
+          cd ..
+          rm -rf package
+      # - name: Build ${{ env.LAMBDA_NAME }} lambda
+      #   working-directory: ${{ env.WORKING_DIR }}
+      #   run: |
+      #     pip install -r requirements.txt
+      #     echo " ============ Zips the lambda function.zip ============ "
+      #     mkdir -p dev
+      #     zip -q -r "dev/function.zip" .
+      #     find . -type d -name "__pycache__" -exec rm -rf {} +
       - name: Check AWS identity
         run: |
           aws sts get-caller-identity
