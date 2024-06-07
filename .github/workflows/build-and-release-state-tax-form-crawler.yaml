@@ -1,0 +1,85 @@
+name: Build and Release State Tax Form Crawler
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "state-tax/state-tax-form-crawler/src/**"
+  workflow_dispatch:
+    inputs:
+      chosen_env:
+        type: choice
+        description: Which environment to deploy?
+        required: true
+        default: 'dev'
+        options:
+          - dev
+          - staging
+      chosen_branch:
+        type: string
+        description: 'Which branch to commit changes'
+        required: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LAMBDA_NAME: state-tax-form-crawler
+  SESSION_NAME: GithubActionAssumeRole
+  WORKING_DIR: state-tax/state-tax-form-crawler/src
+  ROLE_ARN: arn:aws:iam::654654273398:role/GithubAction
+  AWS_REGION: us-west-2
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    ## JWT Permissions required by GH
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Set account by env
+        id: set-account
+        run: |
+            if ${{ inputs.chosen_env == 'dev' }}; then
+              echo "account_id=654654273398" >> $GITHUB_OUTPUT
+            else
+              echo "stop_workflow=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+      - name: Check stop workflow
+        if: steps.set-account.outputs.stop_workflow == 'true'
+        run: |
+          echo "Stopping workflow as stop_workflow is true"
+          exit 1
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          role-session-name: ${{ env.SESSION_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Use Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build ${{ env.LAMBDA_NAME }} lambda
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          pip install -r requirements.txt
+          echo " ============ Zips the lambda function.zip ============ "
+          mkdir -p dev
+          zip -q -r "dev/function.zip" .
+          find . -type d -name "__pycache__" -exec rm -rf {} +
+      - name: Check AWS identity
+        run: |
+          aws sts get-caller-identity
+      - name: Upload lambda to AWS (DEV)
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          FUNCTION_NAME: arn:aws:lambda:us-west-2:${{ steps.set-account.outputs.account_id }}:function:${{ env.LAMBDA_NAME }}
+        run: |
+          pwd && ls -al dev/function.zip
+          aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://dev/function.zip
