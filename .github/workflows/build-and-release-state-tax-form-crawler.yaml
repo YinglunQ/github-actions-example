@@ -38,7 +38,7 @@ jobs:
       branch: ${{ steps.set-branch.outputs.branch }}
       account: ${{ steps.set-account.outputs.account }}
     steps:
-      - name: Set account id by env
+      - name: Set AWS account id by env
         id: set-account
         run: |
             if ${{ inputs.chosen_env == 'dev' }}; then
@@ -47,9 +47,15 @@ jobs:
               echo "stop_workflow=true" >> $GITHUB_OUTPUT
             fi
       - id: set-branch
-        name: Set AWS Account by ENV
-        run: echo "deployment_branch=${{ inputs.chosen_branch }}" >> $GITHUB_OUTPUT
-      - name: Display environment variables
+        name: Set branch to checkout
+        run: |
+          echo "deployment_branch=${{ inputs.chosen_branch }}" >> $GITHUB_OUTPUT
+          if ${{ inputs.chosen_env != 'dev' }}; then
+            echo "branch=${{ inputs.chosen_branch }}" >> $GITHUB_OUTPUT
+          else
+            echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Display output variables
         run: |
           echo "Chosen environment: ${{ inputs.chosen_env }}"
           echo "Chosen branch: ${{ inputs.chosen_branch }}"
