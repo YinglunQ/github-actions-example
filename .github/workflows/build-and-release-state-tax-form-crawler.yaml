@@ -32,29 +32,38 @@ env:
   AWS_REGION: us-west-2
 
 jobs:
+  set-deploy-env:
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.set-branch.outputs.branch }}
+      account: ${{ steps.set-account.outputs.account }}
+    steps:
+      - name: Set account id by env
+        id: set-account
+        run: |
+            if ${{ inputs.chosen_env == 'dev' }}; then
+              echo "account=654654273398" >> $GITHUB_OUTPUT
+            else
+              echo "stopping workflow since chosen env not implemented" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+      - id: set-branch
+        name: Set AWS Account by ENV
+        run: echo "deployment_branch=${{ inputs.chosen_branch }}" >> $GITHUB_OUTPUT
+
   build-and-upload:
+    needs: set-deploy-env
     runs-on: ubuntu-latest
     ## JWT Permissions required by GH
     permissions:
       id-token: write
       contents: read
     steps:
-      - name: Set account by env
-        id: set-account
-        run: |
-            if ${{ inputs.chosen_env == 'dev' }}; then
-              echo "account_id=654654273398" >> $GITHUB_OUTPUT
-            else
-              echo "stop_workflow=true" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-      - name: Check stop workflow
-        if: steps.set-account.outputs.stop_workflow == 'true'
-        run: |
-          echo "Stopping workflow as stop_workflow is true"
-          exit 1
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.set-deploy-env.outputs.branch }}
+          fetch-depth: 0
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
