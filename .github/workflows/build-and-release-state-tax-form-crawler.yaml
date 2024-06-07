@@ -105,7 +105,7 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
         run: |
           cp -r . ../lib
-          zip -r function.zip . ../lib
+          zip -r function.zip ../lib
           ls -al function.zip  # Verify the zip file creation
           rm -rf ../lib
       - name: Check AWS identity
