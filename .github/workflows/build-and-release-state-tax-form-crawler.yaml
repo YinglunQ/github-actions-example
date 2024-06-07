@@ -2,7 +2,7 @@ name: Build and Release State Tax Form Crawler
 on:
   push:
     branches:
-      - "main"
+      - "master"
     paths:
       - "state-tax/state-tax-form-crawler/src/**"
   workflow_dispatch:
@@ -118,5 +118,5 @@ jobs:
         env:
           FUNCTION_NAME: arn:aws:lambda:us-west-2:${{ needs.set-deploy-env.outputs.account }}:function:${{ env.LAMBDA_NAME }}
         run: |
-          pwd && ls -al dev/function.zip
+          pwd && ls -al function.zip
           aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://function.zip
