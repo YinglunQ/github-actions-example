@@ -36,31 +36,45 @@ jobs:
   set-deploy-env:
     runs-on: ubuntu-latest
     outputs:
-      account: ${{ steps.set-account.outputs.account }}
+      account_id: ${{ steps.set-account.outputs.account_id }}
+      branch: ${{ steps.set-branch.outputs.branch }}
     steps:
+      - name: Set Github branch
+        id: set-branch
+        run: |
+          if ${{ inputs.chosen_env == 'dev' }}; then
+            echo "branch=development" >> $GITHUB_OUTPUT
+          elif ${{ inputs.chosen_env == 'staging' }}; then
+            echo "branch=staging" >> $GITHUB_OUTPUT
+          elif ${{ inputs.chosen_env == 'prod' }}; then
+            echo "branch=master" >> $GITHUB_OUTPUT
+          elif ${{ github.event_name == 'push' }}; then
+            echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "Unsupported event '${{ github.event_name }}' for deployment."
+            exit 1
+          fi
       - name: Set AWS account id
         id: set-account
         run: |
-          if ${{ inputs.chosen_env == 'dev' || github.ref_name == 'development' }}; then
-            echo "account=${{ env.DEV_ACCOUNT }}" >> $GITHUB_OUTPUT
-          elif ${{ inputs.chosen_env == 'staging' || github.ref_name == 'staging' }}; then
-            echo "account=${{ env.STAGING_ACCOUNT }}" >> $GITHUB_OUTPUT
-          elif ${{ inputs.chosen_env == 'prod' || github.ref_name == 'master' }}; then
-            echo "account=${{ env.PROD_ACCOUNT }}" >> $GITHUB_OUTPUT
+          branch=${{ steps.set-branch.outputs.branch }}
+
+          if [ "$branch" == "development" ]; then
+            echo "account_id=${{ env.DEV_ACCOUNT }}" >> $GITHUB_OUTPUT
+          elif [ "$branch" == "staging" ]; then
+            echo "account_id=${{ env.STAGING_ACCOUNT }}" >> $GITHUB_OUTPUT
+          elif [ "$branch" == "master" ]; then
+            echo "account_id=${{ env.PROD_ACCOUNT }}" >> $GITHUB_OUTPUT
           else
-            echo "stop_workflow=true" >> $GITHUB_OUTPUT
+            echo "Unsupported branch '$branch' for deployment."
+            exit 1
           fi
       - name: Debug variables
         run: |
-          echo "github.ref: ${{ github.ref }}"
-          echo "github.ref_name: ${{ github.ref_name }}"
+          echo "chosen env: ${{ inputs.chosen_env }}"
+          echo "deploy branch: ${{ steps.set-branch.outputs.branch }}"
           echo "github.event_name: ${{ github.event_name }}"
-      - name: Check stop_workflow
-        run: |
-          if ${{ steps.set-account.outputs.stop_workflow == 'true'}}; then
-            echo "Stopping workflow because branch '${{ github.ref_name }}' is not supported to be deployed."
-            exit 1
-          fi
+          echo "github.ref: ${{ github.ref }}"
   build-and-upload:
     needs: set-deploy-env
     runs-on: ubuntu-latest
@@ -72,7 +86,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.set-deploy-env.outputs.branch }}
           fetch-depth: 0
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -101,6 +115,6 @@ jobs:
       - name: Upload lambda to AWS (DEV)
         working-directory: ${{ env.WORKING_DIR }}
         env:
-          FUNCTION_NAME: arn:aws:lambda:us-west-2:${{ needs.set-deploy-env.outputs.account }}:function:${{ env.LAMBDA_NAME }}
+          FUNCTION_NAME: arn:aws:lambda:us-west-2:${{ needs.set-deploy-env.outputs.account_id }}:function:${{ env.LAMBDA_NAME }}
         run: |
           aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://../function.zip
