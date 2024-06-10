@@ -110,12 +110,12 @@ jobs:
         with:
           ref: ${{ needs.set-deploy-env.outputs.branch }}
           fetch-depth: 0
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::691579306924:role/MicroservicesAdminRole
-          role-session-name: ${{ env.SESSION_NAME }}
-          aws-region: ${{ env.AWS_REGION }}
+      # - name: Configure AWS Credentials
+      #   uses: aws-actions/configure-aws-credentials@v2
+      #   with:
+      #     role-to-assume: arn:aws:iam::691579306924:role/MicroservicesAdminRole
+      #     role-session-name: ${{ env.SESSION_NAME }}
+      #     aws-region: ${{ env.AWS_REGION }}
       - name: Configure 2nd AssumeRole
         uses: aws-actions/configure-aws-credentials@v2
         with:
