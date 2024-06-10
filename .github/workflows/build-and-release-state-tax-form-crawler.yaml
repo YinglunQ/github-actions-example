@@ -48,7 +48,7 @@ jobs:
       - name: Set Github branch
         id: set-branch
         run: |
-          if ${{ github.event_name == 'workflow_dispatch' }}
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
             echo "branch=${{ inputs.chosen_branch }}" >> $GITHUB_OUTPUT
           elif ${{ github.event_name == 'push' }}; then
             echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
@@ -59,7 +59,7 @@ jobs:
       - name: Set deployment env
         id: set-env
         run: |
-          if ${{ github.event_name == 'workflow_dispatch' }}
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
             echo "deploy_env=${{ inputs.chosen_env }}" >> $GITHUB_OUTPUT
           elif ${{ github.event_name == 'push' }}; then
             if ${{ github.ref_name == 'main' || github.ref_name == 'master' }}; then
