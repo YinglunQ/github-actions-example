@@ -85,7 +85,7 @@ jobs:
             echo "account=${{ env.AWS_DEV_ACCOUNT }}" >> $GITHUB_OUTPUT
           elif [ "$deploy_env" == "staging" ]; then
             echo "account=${{ env.AWS_STAGING_ACCOUNT }}" >> $GITHUB_OUTPUT
-          elif [ "$deploy_env" == "master" || "$deploy_env" == "main" ]; then
+          elif [ "$deploy_env" == "prod" ]; then
             echo "account=${{ env.AWS_PROD_ACCOUNT }}" >> $GITHUB_OUTPUT
           else
             echo "Unsupported deploy_env '$deploy_env' to for deployment."
