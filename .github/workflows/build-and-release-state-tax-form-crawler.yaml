@@ -117,12 +117,12 @@ jobs:
       #     role-session-name: ${{ env.SESSION_NAME }}
       #     aws-region: ${{ env.AWS_REGION }}
       - name: Configure 2nd AssumeRole
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::${{ needs.set-deploy-env.outputs.account }}:role/GithubAction
           role-session-name: ${{ env.SESSION_NAME }}
-          role-chaining: true
+          # role-chaining: true
       - name: Use Python 3.12
         uses: actions/setup-python@v5
         with:
