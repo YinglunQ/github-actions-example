@@ -2,6 +2,7 @@ name: Build and Release State Tax Form Crawler
 on:
   push:
     branches:
+      - "main"
       - "master"
       - "staging"
       - "development"
@@ -18,38 +19,59 @@ on:
           - dev
           - staging
           - prod
+      chosen_branch:
+        type: string
+        description: 'Which branch to deploy?'
+        required: true
+        default: development
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   LAMBDA_NAME: state-tax-form-crawler
-  SESSION_NAME: GithubActionAssumeRole
+  SESSION_NAME: AtlantisWorkstreamEMLambdaAssumeRole
   WORKING_DIR: state-tax/state-tax-form-crawler/src
-  ROLE_ARN: arn:aws:iam::654654273398:role/GithubAction
   AWS_REGION: us-west-2
-  DEV_ACCOUNT: 654654273398
-  STAGING_ACCOUNT: 654654273398
-  PROD_ACCOUNT: 654654273398
+  AWS_DEV_ACCOUNT: 654654273398
+  AWS_STAGING_ACCOUNT: 654654273398
+  AWS_PROD_ACCOUNT: 654654273398
 
 jobs:
   set-deploy-env:
     runs-on: ubuntu-latest
     outputs:
-      account: ${{ steps.set-account.outputs.account }}
       branch: ${{ steps.set-branch.outputs.branch }}
+      account: ${{ steps.set-account.outputs.account }}
     steps:
       - name: Set Github branch
         id: set-branch
         run: |
-          if ${{ inputs.chosen_env == 'dev' }}; then
-            echo "branch=development" >> $GITHUB_OUTPUT
-          elif ${{ inputs.chosen_env == 'staging' }}; then
-            echo "branch=staging" >> $GITHUB_OUTPUT
-          elif ${{ inputs.chosen_env == 'prod' }}; then
-            echo "branch=master" >> $GITHUB_OUTPUT
+          if ${{ github.event_name == 'workflow_dispatch' }}
+            echo "branch=${{ inputs.chosen_branch }}" >> $GITHUB_OUTPUT
           elif ${{ github.event_name == 'push' }}; then
             echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "Unsupported event '${{ github.event_name }}' for deployment."
+            exit 1
+          fi
+      - name: Set deployment env
+        id: set-env
+        run: |
+          if ${{ github.event_name == 'workflow_dispatch' }}
+            echo "deploy_env=${{ inputs.chosen_env }}" >> $GITHUB_OUTPUT
+          elif ${{ github.event_name == 'push' }}; then
+            if ${{ github.ref_name == 'main' || github.ref_name == 'master' }}; then
+              echo "deploy_env=prod" >> $GITHUB_OUTPUT
+            elif ${{ github.ref_name == 'staging' }}; then
+              echo "deploy_env=staging" >> $GITHUB_OUTPUT
+            elif ${{ github.ref_name == 'development' }}; then
+              echo "deploy_env=dev" >> $GITHUB_OUTPUT
+            else
+              echo "Unsupported branch '${{ github.ref_name }}' for deployment."
+              exit 1
+            fi
           else
             echo "Unsupported event '${{ github.event_name }}' for deployment."
             exit 1
@@ -57,21 +79,21 @@ jobs:
       - name: Set AWS account id
         id: set-account
         run: |
-          branch=${{ steps.set-branch.outputs.branch }}
+          deploy_env=${{ steps.set-env.outputs.deploy_env }}
 
-          if [ "$branch" == "development" ]; then
-            echo "account=${{ env.DEV_ACCOUNT }}" >> $GITHUB_OUTPUT
-          elif [ "$branch" == "staging" ]; then
-            echo "account=${{ env.STAGING_ACCOUNT }}" >> $GITHUB_OUTPUT
-          elif [ "$branch" == "master" ]; then
-            echo "account=${{ env.PROD_ACCOUNT }}" >> $GITHUB_OUTPUT
+          if [ "$deploy_env" == "dev" ]; then
+            echo "account=${{ env.AWS_DEV_ACCOUNT }}" >> $GITHUB_OUTPUT
+          elif [ "$deploy_env" == "staging" ]; then
+            echo "account=${{ env.AWS_STAGING_ACCOUNT }}" >> $GITHUB_OUTPUT
+          elif [ "$deploy_env" == "master" || "$deploy_env" == "main" ]; then
+            echo "account=${{ env.AWS_PROD_ACCOUNT }}" >> $GITHUB_OUTPUT
           else
-            echo "Unsupported branch '$branch' for deployment."
+            echo "Unsupported deploy_env '$deploy_env' to for deployment."
             exit 1
           fi
-      - name: Debug variables
+      - name: Display output variables
         run: |
-          echo "chosen env: ${{ inputs.chosen_env }}"
+          echo "deploy env: ${{ steps.set-env.outputs.deploy_env }}"
           echo "deploy branch: ${{ steps.set-branch.outputs.branch }}"
           echo "github.event_name: ${{ github.event_name }}"
           echo "github.ref: ${{ github.ref }}"
@@ -91,9 +113,16 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: arn:aws:iam::691579306924:role/MicroservicesAdminRole
           role-session-name: ${{ env.SESSION_NAME }}
           aws-region: ${{ env.AWS_REGION }}
+      - name: Configure 2nd AssumeRole
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ needs.set-deploy-env.outputs.account }}:role/MicroservicesAssumeRole
+          role-session-name: ${{ env.SESSION_NAME }}
+          role-chaining: true
       - name: Use Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -101,7 +130,7 @@ jobs:
       - name: Install dependencies
         working-directory: ${{ env.WORKING_DIR }}
         run: pip install -r requirements.txt -t ../lib --upgrade
-      - name: Package lambda function
+      - name: Package ${{ env.LAMBDA_NAME }} lambda
         working-directory: ${{ env.WORKING_DIR }}
         run: |
           cp -r . ../lib
@@ -115,6 +144,6 @@ jobs:
       - name: Upload lambda to AWS (DEV)
         working-directory: ${{ env.WORKING_DIR }}
         env:
-          FUNCTION_NAME: arn:aws:lambda:us-west-2:${{ needs.set-deploy-env.outputs.account }}:function:${{ env.LAMBDA_NAME }}
+          FUNCTION_NAME: arn:aws:lambda:${{ env.AWS_REGION }}:${{ needs.set-deploy-env.outputs.account }}:function:${{ env.LAMBDA_NAME }}
         run: |
           aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://../function.zip
