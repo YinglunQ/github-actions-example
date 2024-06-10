@@ -120,7 +120,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ needs.set-deploy-env.outputs.account }}:role/MicroservicesAssumeRole
+          role-to-assume: arn:aws:iam::${{ needs.set-deploy-env.outputs.account }}:role/GithubAction
           role-session-name: ${{ env.SESSION_NAME }}
           role-chaining: true
       - name: Use Python 3.12
