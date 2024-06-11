@@ -1,13 +1,13 @@
 name: Build and Release State Tax Form Crawler
-on:
-  push:
-    branches:
-      - "main"
-      - "master"
-      - "staging"
-      - "development"
-    paths:
-      - "state-tax/state-tax-form-crawler/src/**"
+# on:
+#   push:
+#     branches:
+#       - "main"
+#       - "master"
+#       - "staging"
+#       - "development"
+#     paths:
+#       - "state-tax/state-tax-form-crawler/src/**"
   workflow_dispatch:
     inputs:
       chosen_env:
