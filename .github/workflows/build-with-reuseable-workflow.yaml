@@ -79,11 +79,11 @@ jobs:
       - name: Package ${{ env.LAMBDA_NAME }} lambda
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          cp -r . ../lib
-          cd ../lib
-          zip -r ../function.zip .
-          ls -al ../function.zip  # Verify the zip file creation
-          cd .. && rm -rf lib
+          mkdir -p dev/deploy
+          cp -r . dev/deploy
+          cp -r ../lib dev/deploy
+          zip -r function.zip dev
+          rm -rf ../lib
       - name: Check AWS identity
         run: |
           aws sts get-caller-identity
@@ -92,4 +92,4 @@ jobs:
         env:
           FUNCTION_NAME: arn:aws:lambda:${{ env.AWS_REGION }}:${{ needs.set-deploy-env.outputs.account }}:function:${{ env.LAMBDA_NAME }}
         run: |
-          aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://../function.zip
+          aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://function.zip
