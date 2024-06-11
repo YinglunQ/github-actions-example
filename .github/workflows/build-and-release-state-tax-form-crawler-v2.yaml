@@ -1,4 +1,4 @@
-name: Build and Release State Tax Form Crawler
+name: Build with useable workflow
 on:
   push:
     branches:
