@@ -6,7 +6,7 @@ import requests
 
 def lambda_handler(event, context):
 
-    print("master:", json.dumps(event, indent=2))
+    print("masterr:", json.dumps(event, indent=2))
 
     response = requests.get('https://api.github.com/rate_limit', timeout=5)
     data = response.json()
