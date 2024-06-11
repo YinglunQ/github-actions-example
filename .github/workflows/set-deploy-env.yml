@@ -70,9 +70,9 @@ jobs:
             echo "Unsupported deploy_env '$deploy_env' to for deployment."
             exit 1
           fi
-      - name: Display output variables
-        run: |
-          echo "deploy env: ${{ steps.set-env.outputs.deploy_env }}"
-          echo "deploy branch: ${{ steps.set-branch.outputs.branch }}"
-          echo "github.event_name: ${{ github.event_name }}"
-          echo "github.ref: ${{ github.ref }}"
+      # - name: Display output variables
+      #   run: |
+      #     echo "deploy env: ${{ steps.set-env.outputs.deploy_env }}"
+      #     echo "deploy branch: ${{ steps.set-branch.outputs.branch }}"
+      #     echo "github.event_name: ${{ github.event_name }}"
+      #     echo "github.ref: ${{ github.ref }}"

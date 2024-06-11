@@ -46,12 +46,19 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - name: Display output variables
+        run: |
+          echo "deploy branch: ${{ needs.set-deploy-env.outputs.branch }}"
+          echo "account: ${{ needs.set-deploy-env.outputs.account }}"
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "github.ref: ${{ github.ref }}"
+          echo "role-to-assume: arn:aws:iam::${{ needs.set-deploy-env.outputs.account }}:role/GithubAction"
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.set-deploy-env.outputs.branch }}
           fetch-depth: 0
-      - name: Configure 2nd AssumeRole
+      - name: Configure AssumeRole
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
