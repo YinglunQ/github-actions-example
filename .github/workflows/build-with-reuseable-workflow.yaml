@@ -92,4 +92,4 @@ jobs:
         env:
           FUNCTION_NAME: arn:aws:lambda:${{ env.AWS_REGION }}:${{ needs.set-deploy-env.outputs.account }}:function:${{ env.LAMBDA_NAME }}
         run: |
-          aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://function.zip
+          aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://../function.zip
