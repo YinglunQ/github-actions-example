@@ -79,10 +79,10 @@ jobs:
       - name: Package ${{ env.LAMBDA_NAME }} lambda
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          mkdir -p dev/deploy
-          cp -r . dev/deploy
-          cp -r ../lib dev/deploy
-          zip -r function.zip dev
+          mkdir -p ../dev/deploy
+          cp -r . ../dev/deploy
+          cp -r ../lib ../dev/deploy
+          zip -r function.zip ../dev
           rm -rf ../lib
       - name: Check AWS identity
         run: |
