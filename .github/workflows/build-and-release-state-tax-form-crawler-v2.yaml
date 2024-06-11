@@ -1,0 +1,94 @@
+name: Build and Release State Tax Form Crawler
+on:
+  push:
+    branches:
+      - "main"
+      - "master"
+      - "staging"
+      - "development"
+    paths:
+      - "state-tax/state-tax-form-crawler/src/**"
+  workflow_dispatch:
+    inputs:
+      chosen_env:
+        type: choice
+        description: Which environment to deploy?
+        required: true
+        default: 'dev'
+        options:
+          - dev
+          - staging
+          - prod
+      chosen_branch:
+        type: string
+        description: 'Which branch to deploy?'
+        required: true
+        default: development
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LAMBDA_NAME: state-tax-form-crawler
+  SESSION_NAME: AtlantisWorkstreamEMLambdaAssumeRole
+  WORKING_DIR: state-tax/state-tax-form-crawler/src
+  AWS_REGION: us-west-2
+
+jobs:
+  set-deploy-env:
+    uses: ./.github/workflows/set-deploy-env.yml
+    with:
+      chosen_env: ${{ github.event.inputs.chosen_env }}
+      chosen_branch: ${{ github.event.inputs.chosen_branch }}
+
+  build-and-upload:
+    needs: set-deploy-env
+    runs-on: ubuntu-latest
+    ## JWT Permissions required by GH
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.set-deploy-env.outputs.branch }}
+          fetch-depth: 0
+      # - name: Configure AWS Credentials
+      #   uses: aws-actions/configure-aws-credentials@v2
+      #   with:
+      #     role-to-assume: arn:aws:iam::691579306924:role/MicroservicesAdminRole
+      #     role-session-name: ${{ env.SESSION_NAME }}
+      #     aws-region: ${{ env.AWS_REGION }}
+      - name: Configure 2nd AssumeRole
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ needs.set-deploy-env.outputs.account }}:role/GithubAction
+          role-session-name: ${{ env.SESSION_NAME }}
+          # role-chaining: true
+      - name: Use Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: pip install -r requirements.txt -t ../lib --upgrade
+      - name: Package ${{ env.LAMBDA_NAME }} lambda
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          cp -r . ../lib
+          cd ../lib
+          zip -r ../function.zip .
+          ls -al ../function.zip  # Verify the zip file creation
+          cd .. && rm -rf lib
+      - name: Check AWS identity
+        run: |
+          aws sts get-caller-identity
+      - name: Upload lambda to AWS (DEV)
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          FUNCTION_NAME: arn:aws:lambda:${{ env.AWS_REGION }}:${{ needs.set-deploy-env.outputs.account }}:function:${{ env.LAMBDA_NAME }}
+        run: |
+          aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://../function.zip
