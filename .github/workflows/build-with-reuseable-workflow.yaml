@@ -81,8 +81,8 @@ jobs:
         run: |
           mkdir -p ../dev/deploy
           cp -r . ../dev/deploy
-          cp -r ../lib/* ../dev/deploy
-          zip -r function.zip ../dev
+          cd ../lib
+          zip -r ../function.zip . ../dev
           rm -rf ../lib
       - name: Check AWS identity
         run: |
