@@ -1,4 +1,4 @@
-name: Build with useable workflow
+name: Build with reuseable workflow
 on:
   push:
     branches:
@@ -24,10 +24,6 @@ on:
         description: 'Which branch to deploy?'
         required: true
         default: development
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
   LAMBDA_NAME: state-tax-form-crawler
