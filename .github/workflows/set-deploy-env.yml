@@ -1,0 +1,77 @@
+name: Set deploy env
+on:
+  workflow_call:
+    inputs:
+      chosen_env:
+        required: true
+        type: string
+      chosen_branch:
+        required: true
+        type: string
+    outputs:
+      branch:
+        description: 'The branch to deploy'
+        value: ${{ jobs.setup.outputs.branch }}
+      account:
+        description: 'The AWS account id to deploy to'
+        value: ${{ jobs.setup.outputs.account }}
+      deploy_env:
+        description: 'The environment to deploy to'
+        value: ${{ jobs.setup.outputs.env }}
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    env:
+      AWS_DEV_ACCOUNT: 654654273398
+      AWS_STAGING_ACCOUNT: 654654273398
+      AWS_PROD_ACCOUNT: 654654273398
+    outputs:
+      branch: ${{ steps.set-env.outputs.branch }}
+      account: ${{ steps.set-account.outputs.account }}
+      env: ${{ steps.set-env.outputs.deploy_env }}
+    steps:
+      - name: Set Github branch
+        id: set-branch
+        run: |
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
+            echo "branch=${{ inputs.chosen_branch }}" >> $GITHUB_OUTPUT
+          elif ${{ github.event_name == 'push' }}; then
+            echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "Unsupported event '${{ github.event_name }}' for deployment."
+            exit 1
+          fi
+      - name: Set deployment env
+        id: set-env
+        run: |
+          if ${{ inputs.chosen_env == 'dev' || github.ref_name == 'development' }}; then
+            echo "deploy_env=development" >> $GITHUB_OUTPUT
+          elif ${{ inputs.chosen_env == 'staging' || github.ref_name == 'staging' }}; then
+            echo "deploy_env=staging" >> $GITHUB_OUTPUT
+          elif ${{ inputs.chosen_env == 'prod' || github.ref_name == 'main' }}; then
+            echo "deploy_env=production" >> $GITHUB_OUTPUT
+          else
+            echo "Unsupported deploy_env '${{ inputs.chosen_env }}' or '${{ github.ref_name }}' for deployment."
+            exit 1
+          fi
+      - name: Set AWS account id
+        id: set-account
+        run: |
+          deploy_env=${{ steps.set-env.outputs.deploy_env }}
+
+          if [ "$deploy_env" == "development" ]; then
+            echo "account=${{ env.AWS_DEV_ACCOUNT }}" >> $GITHUB_OUTPUT
+          elif [ "$deploy_env" == "staging" ]; then
+            echo "account=${{ env.AWS_STAGING_ACCOUNT }}" >> $GITHUB_OUTPUT
+          elif [ "$deploy_env" == "production" ]; then
+            echo "account=${{ env.AWS_PROD_ACCOUNT }}" >> $GITHUB_OUTPUT
+          else
+            echo "Unsupported deploy_env '$deploy_env' to for deployment."
+            exit 1
+          fi
+      - name: Display output variables
+        run: |
+          echo "deploy env: ${{ steps.set-env.outputs.deploy_env }}"
+          echo "deploy branch: ${{ steps.set-branch.outputs.branch }}"
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "github.ref: ${{ github.ref }}"
