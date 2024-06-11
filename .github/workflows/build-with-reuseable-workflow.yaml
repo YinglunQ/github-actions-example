@@ -25,6 +25,10 @@ on:
         required: true
         default: development
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   LAMBDA_NAME: state-tax-form-crawler
   SESSION_NAME: AtlantisWorkstreamEMLambdaAssumeRole

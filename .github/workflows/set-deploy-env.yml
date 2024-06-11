@@ -19,9 +19,6 @@ on:
 jobs:
   setup:
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     env:
       AWS_DEV_ACCOUNT: 654654273398
       AWS_STAGING_ACCOUNT: 654654273398
