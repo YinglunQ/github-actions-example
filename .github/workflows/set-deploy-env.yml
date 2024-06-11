@@ -9,7 +9,13 @@ on:
       chosen_branch:
         required: true
         type: string
-
+    outputs:
+      branch:
+        description: 'The branch to deploy'
+        value: ${{ jobs.setup.outputs.branch }}
+      account:
+        description: 'The AWS account id to deploy to'
+        value: ${{ jobs.setup.outputs.account }}
 jobs:
   setup:
     runs-on: ubuntu-latest
